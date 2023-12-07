@@ -22,6 +22,7 @@ async function download() {
 async function processAndSave() {
     await prepareDatabase()
 
+    // @ts-ignore
     const json = await import("../../data/airports_br.json");
 
     const keys = Object.keys(json)
