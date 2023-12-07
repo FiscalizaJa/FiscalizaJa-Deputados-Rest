@@ -1,0 +1,11 @@
+{
+    "processors": {
+        "expenses": {
+            "concurrent_transactions": 35,
+            "transaction_size": 6000
+        }
+    },
+    "cronjobs": {
+        "update_expenses": "0 6 * * *"
+    }
+}

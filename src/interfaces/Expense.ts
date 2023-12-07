@@ -1,0 +1,40 @@
+interface Expense {
+    id?: string,
+    nomeParlamentar: string,
+    cpf: string,
+    difId: string,
+    idDeputado: string,
+    numeroCarteiraParlamentar: number,
+    legislatura: number,
+    siglaUF: string,
+    siglaPartido: string,
+    codigoLegislatura: number,
+    numeroSubCota: number,
+    descricao: string,
+    numeroEspecificacaoSubCota: number,
+    descricaoEspecificacao: string,
+    fornecedor: string,
+    cnpjCPF: string,
+    numero: number,
+    tipoDocumento: number,
+    dataEmissao: string,
+    valorDocumento: number,
+    valorGlosa: number,
+    valorLiquido: number,
+    mes: number,
+    ano: number,
+    parcela: number,
+    passageiro: string,
+    trecho: string,
+    lote: string,
+    ressarcimento: string,
+    datPagamentoRestituicao: string,
+    restituicao: string,
+    numeroDeputadoID: number,
+    idDocumento: number,
+    urlDocumento: string
+}
+
+export type {
+    Expense
+}
