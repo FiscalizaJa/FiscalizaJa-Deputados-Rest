@@ -92,6 +92,9 @@ async function prepareDatabase(useIndex: boolean = false) {
         await sql`
             CREATE INDEX IF NOT EXISTS idx_deputadoFiltros ON "Deputados" ("siglaSexo");
         `
+        await sql`
+            CREATE INDEX IF NOT EXISTS idx_aeroportoFiltros ON "Aeroportos" (icao, iata, uf)
+        `
     }
 }
 
