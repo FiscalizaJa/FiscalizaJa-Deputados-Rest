@@ -66,6 +66,7 @@ app.register(swaggerUI, {
 
 Router.startRouter(app).then(async () => {
     const port = Number(process.env.PORT) || 3000
+    const host = process.env.HOST || "127.0.0.1"
 
     console.log(Colors.yellow("Preparing database"))
 
@@ -74,7 +75,7 @@ Router.startRouter(app).then(async () => {
     console.log(Colors.green("Prepared database."))
 
     app.listen({
-        host: "0.0.0.0",
+        host: host,
         port: port
     }).then(async () => {
         console.log(Colors.green(`Ready to serve data on port ${port}`))
