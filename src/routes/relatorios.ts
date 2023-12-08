@@ -422,5 +422,5 @@ export default async function load(app: FastifyInstance) {
 }
 
 export const route_config = {
-    prefix: "/relatorios"
+    prefix: "/api/relatorios"
 }
