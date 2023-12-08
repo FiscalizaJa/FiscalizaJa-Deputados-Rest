@@ -5,6 +5,7 @@ import Router from "./structures/Router";
 import cors from "@fastify/cors";
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
+import { prepareDatabase } from "./structures/Database";
 
 import job from "./cronjobs/update_expenses";
 
@@ -16,19 +17,7 @@ declare global {
     var readyToServe: boolean
 }
 
-global.readyToServe = false
-
 console.log(Colors.yellow("Starting..."))
-
-app.addHook("preHandler", (req, res, done) => {
-    if(global.readyToServe == false || !global.readyToServe) {
-        return res.send({
-            message: "O servidor não está preparado para receber requisições, tente novamente em alguns segundos."
-        })
-    } else {
-        done()
-    }
-})
 
 app.register(cors, {
     origin: "*",
@@ -75,8 +64,14 @@ app.register(swaggerUI, {
     staticCSP: true
 })
 
-Router.startRouter(app).then(() => {
+Router.startRouter(app).then(async () => {
     const port = Number(process.env.PORT) || 3000
+
+    console.log(Colors.yellow("Preparing database"))
+
+    await prepareDatabase(true)
+
+    console.log(Colors.green("Prepared database."))
 
     app.listen({
         host: "0.0.0.0",

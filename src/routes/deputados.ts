@@ -169,10 +169,6 @@ export default async function load(app: FastifyInstance) {
                 data: data
             }
         })
-        
-        prepareDatabase(true).then(() => {
-            global.readyToServe = true
-        })
 
         resolve(true)
     })
