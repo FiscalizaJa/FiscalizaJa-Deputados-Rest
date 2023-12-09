@@ -47,7 +47,18 @@ export default async function load(app: FastifyInstance) {
         }, {});
 
         const aeroportos = await database`
-            SELECT * FROM "Aeroportos" WHERE iata IN ${database(query.iata)} LIMIT ${MAX_IATAS}
+            SELECT DISTINCT
+            icao,
+            iata,
+            name,
+            city,
+            state,
+            elevation,
+            lat,
+            lon,
+            tz,
+            uf 
+            FROM "Aeroportos" WHERE iata IN ${database(query.iata)} LIMIT ${MAX_IATAS}
         `
 
         return {
