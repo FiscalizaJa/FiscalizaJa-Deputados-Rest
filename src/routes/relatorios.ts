@@ -170,7 +170,17 @@ export default async function load(app: FastifyInstance) {
             ${query.pagina > 1 ? database`OFFSET ${OFFSET}` : database``}
         `
 
-        const counts = await getCounts(params, query, [998, 999])
+        const counts = await database`
+            SELECT
+            fornecedor, COUNT(*) AS contratacoes, SUM("valorLiquido") AS "valorGasto", "cnpjCPF" as cnpj
+            FROM "Despesas"
+            WHERE "numeroDeputadoID" = ${params.id}
+            AND "numeroSubCota" IN(${998}, ${999})
+            AND "numeroEspecificacaoSubCota" = ${0}
+            AND mes = ${query.mes}
+            AND ano = ${query.ano}
+            GROUP BY fornecedor, cnpj
+        ` // specific case
 
         return {
             total: data.length,
