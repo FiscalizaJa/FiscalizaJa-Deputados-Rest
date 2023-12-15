@@ -4,13 +4,10 @@
  */
 
 import { FastifyInstance } from "fastify";
-import UseDatabase from "../structures/Database";
 import { timingSafeEqual } from "crypto";
 import startSaveProcess from "../dataProcessors/expenses";
 
 export default async function load(app: FastifyInstance) {
-
-    const database = UseDatabase()
 
     app.addHook("preHandler", (req, res, done) => {
         const authToken: string = req.headers["x-fiscalizaja-token"] as string
