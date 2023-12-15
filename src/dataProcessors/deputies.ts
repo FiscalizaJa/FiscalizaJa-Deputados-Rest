@@ -1,4 +1,3 @@
-import jsonstream from "JSONStream";
 import Downloader from "../structures/Downloader";
 import fs from "fs";
 import Colors from "colors";
@@ -36,16 +35,6 @@ async function checkJson() {
     console.log(Colors.green(`Downloaded in ${download.timeTaken} ms`))
 }
 
-function startSavingProcess() {
-    const stream = fs.createReadStream("./data/deputados.json")
-
-    const parser = jsonstream.parse("dados.*")
-
-    stream.pipe(parser)
-
-    return parser
-}
-
 async function processJsonStream() {
     const database = UseDatabase()
     await prepareDatabase()
@@ -72,7 +61,6 @@ async function processJsonStream() {
         const columns = Object.keys(deputados[0])
         
         const chunks = paginate(deputados, 1500)
-
         let chunk = chunks.next()
 
         while(!chunk.done && chunk.value) {

@@ -38,7 +38,6 @@ async function processAndSave() {
 
     await database.begin(async (sql) => {
         const chunks = paginate(airports, 400)
-
         let chunk = chunks.next()
 
         while(!chunk.done && chunk.value) {
