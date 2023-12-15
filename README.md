@@ -22,7 +22,7 @@ FiscalizaJá é um projeto livre e open source com objetivo de promover a transp
 O antigo FiscalizaJá usava diretamente o serviço rest do Dados Abertos da Câmara dos deputados. No entanto, há alguns problemas que atrapalhavam a usabilidade do site.
 
 - Altas latências: Os servidores onde o site roda suas funções backend ficam longe do Brasil, ou seja, para fazer o "proxy" entre cliente e servidor, há uma alta latência devido a distância dos servidores, o que impacta diretamente na velocidade de resposta do site.
-- Instabilidades: O serviço da câmara não tem a melhor das infraestruturas, então sofre com instabilidades frequentes, e também afetam diretamente o site!
+- Instabilidades: O serviço da câmara sofre com instabilidades frequentemente, que afetam diretamente o site!
 
 Pensando em resolver esses problemas e abrir margem para fiscalização de outras áreas, **o FiscalizaJá evoluiu**!
 
@@ -50,6 +50,19 @@ As tabelas seguem a mesma estrutura dos dados `.json` retornados da câmara, som
 
 **É altamente recomendado que o arquivo `config.json` seja editado para se adaptar as limitações do seu hardware. Caso contrário, poderá enfrentar problemas de desempenho.**
 
+## 🔑 Variáveis de ambiente
+A aplicação requer algumas variáveis de ambiente para funcionar. Você pode criar um arquivo `.env` (apena faça isso localmente) ou definir no seu sistema operacional.
+
+```bash
+DATABASE_URL="postgres://postgres:should_have_strong_password@127.0.0.1:5432"
+SECRET_TOKEN="token"
+```
+
+Esse é um exemplo de como é o arquivo `.env` no FiscalizaJá. Em produção, defina as variáveis diretamente no seu ambiente.
+
+- `DATABASE_URL`: URL do banco de dados PostgreSQL que será usado. Você pode criar um na supabase se não tiver uma instância rodando.
+- `SECRET_TOKEN`: Token secreto que protege as rotas `/adm`, recomendável que você gere um token aleatório de pelo menos 64 bytes. Se quiser desativar completamente o `/adm`, pode omitir o valor.
+
 ## ⏱ Cron jobs
 Para atualizar diariamente as despesas, há um cronjob rodando em segundo plano.
 
@@ -70,8 +83,14 @@ A API do FiscalizaJá deputados foi feita especificamente para as necessidades d
 # 🚀 Selfhosting
 O processo de selfhosting é muito simples porém há alguns cuidados que você deve tomar.
 
-Antes de tudo, instale as dependências com `npm install` e, quando for rodar em produção, compile o typescript para javascript antes: `npx tsc` - Os arquivos compilados ficarão na pasta `/build`. (já rodei um projeto em produção sem compilar com o TSC 💀).
-Caso queira apenas testar, use `npx ts-node index.ts`, não há necessidade de compilar todo o diretório para esse caso.
+Antes de tudo, instale as dependências com `npm install` e, quando for rodar em produção, compile o typescript para javascript antes: `npx tsc` - Os arquivos compilados ficarão na pasta `/dist`. (já rodei um projeto em produção sem compilar com o TSC 💀).
+Caso queira apenas testar, use `npx ts-node src/index.ts`, não há necessidade de compilar todo o diretório para esse caso.
+
+## 👀 Para quem compilou...
+Veja se o diretório `dist` contém uma pasta chamada "data". Em alguns casos o tsc não a cria no momento em que o código é compilado. Se não houver, crie uma pasta `data` dentro de `dist` com
+```bash
+mkdir data
+```
 
 ## 💀 Carregando os dados
 Na pasta `dataProcessors` existem dois arquivos: `deputies.ts` e `expenses.ts`.
