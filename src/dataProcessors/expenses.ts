@@ -6,7 +6,6 @@ import UseDatabase from "../structures/Database";
 import { prepareDatabase } from "../structures/Database";
 import config from "../../config.json";
 
-import { randomBytes, randomUUID } from "crypto";
 import { Expense } from "../interfaces/Expense";
 
 import paginate from "../paginate";
@@ -33,7 +32,6 @@ async function checkJson(updateMode: boolean = false) {
     let promises = []
 
     for(const year of years) {
-
         if(promises.length >= 3) {
             await Promise.all(promises)
             promises = []
@@ -65,17 +63,8 @@ function startJsonStream(year: number) {
     const parser = jsonstream.parse("dados.*")
 
     stream.pipe(parser)
-
-    //stream.pause()
     
     return parser
-}
-
-function generateRandomID() {
-    const id = randomBytes(64).toString("hex")
-    const date = Date.now()
-
-    return id + Buffer.from(String(date)).toString("hex")
 }
 
 async function waitEnd(stream) {
@@ -112,7 +101,6 @@ async function startSaveProcess(updateMode?: boolean) {
         console.log(Colors.yellow(`Loading expenses from ${year}`))
 
         parser.on("data", async (expense: Expense) => {
-
             if(expense.valorLiquido < 1) {
                 excluded += 1
                 return;
@@ -172,7 +160,6 @@ async function transactionExpenses(expenses: Expense[]) {
             const columns = Object.keys(expenses[0]).filter(c => c !== "idDeputado")
     
             const chunks = paginate(expenses, 1600) // We need this due to PostgreSQL params limit
-
             let chunk = chunks.next()
 
             const write_promises = []
