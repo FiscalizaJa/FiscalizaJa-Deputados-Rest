@@ -127,39 +127,6 @@ async function getCounts(params: any, query: any, filter: number[]) {
     return counts
 }
 
-const DEFAULT_QUERY_STRING_DOC = {
-    type: "object",
-    properties: {
-        ano: {
-            type: "array",
-            description: "Um ou mais anos de ocorrência das despesas",
-            items: {
-                type: "number"
-            }
-        },
-        mes: {
-            type: "array",
-            description: "Um ou mais meses de ocorrência das despesas.",
-            items: {
-                type: "number"
-            }
-        },
-        fornecedor: {
-            type: "string",
-            description: "Fornecedor das despesas, pode ser cnpj, cpf ou nome."
-        }
-    }
-}
-
-const DEFAULT_PARAMS_DOC = {
-    type: "object",
-    properties: {
-        id: {
-            type: "string"
-        }
-    }
-}
-
 // ROUTER
 export default async function load(app: FastifyInstance) {
     app.get("/:id/viagens", {
@@ -203,17 +170,7 @@ export default async function load(app: FastifyInstance) {
             ${query.pagina > 1 ? database`OFFSET ${OFFSET}` : database``}
         `
 
-        const counts = await database`
-            SELECT
-            fornecedor, COUNT(*) AS contratacoes, SUM("valorLiquido") AS "valorGasto", "cnpjCPF" as cnpj
-            FROM "Despesas"
-            WHERE "numeroDeputadoID" = ${params.id}
-            AND "numeroSubCota" IN(${998}, ${999})
-            AND "numeroEspecificacaoSubCota" = ${0}
-            AND mes = ${query.mes}
-            AND ano = ${query.ano}
-            GROUP BY fornecedor, cnpj
-        `
+        const counts = await getCounts(params, query, [998, 999])
 
         return {
             total: data.length,
