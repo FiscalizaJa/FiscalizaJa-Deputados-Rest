@@ -5,7 +5,7 @@
 
 - Um processador de ao menos 2 núcleos.
 - 1 gb de memória ram
-- 10 GB de espaço em disco disponível (de preferência ser um SSD).
+- 40 GB de espaço em disco disponível (de preferência ser um SSD).
 - Recomendado o uso de um provedor que não cobre muito por gigabyte de rede consumido, pois todo dia um JSON é baixado xD.
 
 ## 📦 Banco de dados
