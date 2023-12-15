@@ -47,7 +47,7 @@ export default async function load(app: FastifyInstance) {
             if(query.mes) {
                 if(Number(query.mes) > 12 || Number(query.mes) < 1) {
                     return res.status(400).send({
-                        error: ""
+                        error: "O mês é entre 1 e 12."
                     })
                 }
 
