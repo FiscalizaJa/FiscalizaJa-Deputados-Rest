@@ -21,19 +21,10 @@ export default async function load(app: FastifyInstance) {
         
         const query: {
             idDeputado?: string,
-            itens?: string,
-            pagina?: string,
             mes?: number | number[]
         } = req.query
 
         params.cnpj = params.cnpj.replace(/[^0-9]/g, "")
-
-        // usar parseInt, pois o isNaN retorna "true" para Infinity (coisas zoadas do javascript)
-        if(isNaN(parseInt(query.pagina || "0")) || isNaN(parseInt(query.itens || "0"))) {
-            return res.status(400).send({
-                error: "As queries \"itens, pagina\" devem ser númericas."
-            })
-        }
 
         if(Array.isArray(query.mes)) {
             if(query.mes.length > 12) {
@@ -57,15 +48,13 @@ export default async function load(app: FastifyInstance) {
             }
         }
 
-        query.itens = Math.max(Number(query.itens) || 0, FORNECEDOR_MAX).toString()
-
-        const offset = Number(query.itens) * Number(query.pagina)
-
         const search_for = await database`
-            SELECT DISTINCT fornecedor
-            FROM "Despesas"
+            SELECT nome
+            FROM "NomesFornecedores"
             WHERE "cnpjCPF" = ${params.cnpj}
         `
+
+        const nomes = search_for?.map(f => f.nome) || []
 
         const fornecedores = await database`
             SELECT
@@ -73,16 +62,14 @@ export default async function load(app: FastifyInstance) {
             SUM("valorLiquido") AS "valorTotal",
             ARRAY_AGG(DISTINCT "mes") AS meses
             FROM "Despesas"
-            WHERE "fornecedor" IN ${database(search_for.map(f => f.fornecedor))}
+            WHERE "fornecedor" IN ${database(nomes)}
             AND mes IN ${database(query.mes)}
             ${query.idDeputado ? database`AND "numeroDeputadoID" = ${query.idDeputado}` : database``}
             GROUP BY ano
-            LIMIT ${query.itens}
-            ${Number(query.pagina) > 1 ? database`OFFSET ${offset}` : database``}
         `
 
         return {
-            nomesVariacoes: search_for?.map(f => f.fornecedor) || null,
+            nomesVariacoes: nomes || null,
             meses: query.mes,
             data: fornecedores
         }
@@ -141,8 +128,8 @@ export default async function load(app: FastifyInstance) {
         }
 
         const search_for = await database`
-            SELECT DISTINCT fornecedor
-            FROM "Despesas"
+            SELECT nome
+            FROM "NomesFornecedores"
             WHERE "cnpjCPF" = ${params.cnpj}
         `
 
@@ -155,7 +142,7 @@ export default async function load(app: FastifyInstance) {
             ARRAY_AGG(DISTINCT "mes") AS meses,
             ano
             FROM "Despesas"
-            WHERE "fornecedor" IN ${database(search_for.map(f => f.fornecedor))}
+            WHERE "fornecedor" IN ${database(search_for.map(f => f.nome))}
             AND mes IN ${database(query.mes)}
             AND ano = ${query.ano}
             GROUP BY ano, "nomeParlamentar", "numeroDeputadoID"

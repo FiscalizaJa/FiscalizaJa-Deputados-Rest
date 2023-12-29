@@ -85,15 +85,26 @@ async function prepareDatabase(useIndex: boolean = false) {
         )
     `
 
+    await sql`
+        CREATE TABLE IF NOT EXISTS "NomesFornecedores" (
+            id SERIAL PRIMARY KEY,
+            "cnpjCPF" TEXT,
+            nome TEXT UNIQUE
+        )
+    `
+
     if(useIndex === true) {
         await sql`
-            CREATE INDEX IF NOT EXISTS idx_despesafiltros ON "Despesas" ("numeroDeputadoID", "mes", "ano", "idDocumento", "difId", "descricao", "numeroSubCota", "numeroEspecificacaoSubCota", "siglaPartido", "cnpjCPF", "fornecedor");
+            CREATE INDEX IF NOT EXISTS idx_despesafiltros ON "Despesas" ("numeroDeputadoID", "nomeParlamentar", "mes", "ano", "idDocumento", "difId", "descricao", "numeroSubCota", "numeroEspecificacaoSubCota", "siglaPartido", "cnpjCPF", "fornecedor");
         `
         await sql`
             CREATE INDEX IF NOT EXISTS idx_deputadoFiltros ON "Deputados" ("siglaSexo");
         `
         await sql`
             CREATE INDEX IF NOT EXISTS idx_aeroportoFiltros ON "Aeroportos" (icao, iata, uf)
+        `
+        await sql`
+            CREATE INDEX IF NOT EXISTS idx_fornecedores ON "NomesFornecedores" ("cnpjCPF", nome)
         `
     }
 }

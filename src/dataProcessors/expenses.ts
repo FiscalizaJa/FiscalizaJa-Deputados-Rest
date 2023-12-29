@@ -149,6 +149,28 @@ async function startSaveProcess(updateMode?: boolean) {
     }
 
     console.log(expenses.length < 1 ? Colors.green(`All valid expenses saved.`) : Colors.red(`${expenses.length} expenses loss.`))
+
+    console.log(Colors.yellow("Updating names..."))
+    await database`
+        INSERT INTO "NomesFornecedores" ("cnpjCPF", nome)
+        SELECT DISTINCT "cnpjCPF", fornecedor
+        FROM "Despesas"
+        WHERE "cnpjCPF" IS NOT NULL AND "cnpjCPF" <> ''
+        ON CONFLICT (nome) DO NOTHING
+    `
+
+    console.log(Colors.yellow("Removing duplicates"))
+    await database`
+        WITH cte AS (
+            SELECT id, "urlDocumento",
+                ROW_NUMBER() OVER (PARTITION BY "urlDocumento" ORDER BY id DESC) AS rn
+            FROM "Despesas"
+            WHERE "urlDocumento" IS NOT NULL AND "urlDocumento" != ''
+        )
+        DELETE FROM "Despesas"
+        WHERE id IN (SELECT id FROM cte WHERE rn > 1)
+    `
+    console.log(Colors.green("Finished."))
 }
 
 async function transactionExpenses(expenses: Expense[]) {
