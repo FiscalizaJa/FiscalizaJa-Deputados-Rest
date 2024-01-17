@@ -89,7 +89,8 @@ async function prepareDatabase(useIndex: boolean = false) {
         CREATE TABLE IF NOT EXISTS "NomesFornecedores" (
             id SERIAL PRIMARY KEY,
             "cnpjCPF" TEXT,
-            nome TEXT UNIQUE
+            nome TEXT UNIQUE,
+            nome_vetor TSVECTOR
         )
     `
 
@@ -104,7 +105,7 @@ async function prepareDatabase(useIndex: boolean = false) {
             CREATE INDEX IF NOT EXISTS idx_aeroportoFiltros ON "Aeroportos" (icao, iata, uf)
         `
         await sql`
-            CREATE INDEX IF NOT EXISTS idx_fornecedores ON "NomesFornecedores" ("cnpjCPF", nome)
+            CREATE INDEX IF NOT EXISTS idx_fornecedores ON "NomesFornecedores" ("cnpjCPF", nome, nome_vetor)
         `
     }
 }

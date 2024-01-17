@@ -10,6 +10,8 @@ const database = UseDatabase()
  */
 
 const FORNECEDOR_MAX = 150
+const SEARCH_LIMIT = 15
+const SEARCH_TERM_MAX_LENGTH = 120
 
 export default async function load(app: FastifyInstance) {
     app.get("/:cnpj", {
@@ -57,15 +59,19 @@ export default async function load(app: FastifyInstance) {
         const nomes = search_for?.map(f => f.nome) || []
 
         const fornecedores = await database`
+            WITH filtered_data AS (
+                SELECT *
+                FROM "Despesas"
+                WHERE "fornecedor" IN ${database(nomes)}
+                AND mes IN ${database(query.mes)}
+                ${query.idDeputado ? database`AND "numeroDeputadoID" = ${query.idDeputado}` : database``}
+            )
             SELECT
-            ano,
-            SUM("valorLiquido") AS "valorTotal",
-            ARRAY_AGG(DISTINCT "mes") AS meses
-            FROM "Despesas"
-            WHERE "fornecedor" IN ${database(nomes)}
-            AND mes IN ${database(query.mes)}
-            ${query.idDeputado ? database`AND "numeroDeputadoID" = ${query.idDeputado}` : database``}
-            GROUP BY ano
+                ano,
+                SUM("valorLiquido") AS "valorTotal",
+                ARRAY_AGG(DISTINCT "mes") AS meses
+            FROM filtered_data
+            GROUP BY ano;
         `
 
         return {
@@ -134,27 +140,59 @@ export default async function load(app: FastifyInstance) {
         `
 
         const ranking_deputados = await database`
+            WITH filtered_data AS (
+                SELECT "nomeParlamentar",
+                    "numeroDeputadoID",
+                    "valorLiquido",
+                    "mes",
+                    ano
+                FROM "Despesas"
+                WHERE "fornecedor" IN ${database(search_for.map(f => f.nome))}
+                AND mes IN ${database(query.mes)}
+                AND ano = ${query.ano}
+            )
             SELECT
-            "nomeParlamentar",
-            "numeroDeputadoID",
-            SUM("valorLiquido") AS "valorTotal",
-            COUNT(*) AS "contratacoes",
-            ARRAY_AGG(DISTINCT "mes") AS meses,
-            ano
-            FROM "Despesas"
-            WHERE "fornecedor" IN ${database(search_for.map(f => f.nome))}
-            AND mes IN ${database(query.mes)}
-            AND ano = ${query.ano}
+                "nomeParlamentar",
+                "numeroDeputadoID",
+                SUM("valorLiquido") AS "valorTotal",
+                COUNT(*) AS "contratacoes",
+                ARRAY_AGG(DISTINCT "mes") AS meses,
+                ano
+            FROM filtered_data
             GROUP BY ano, "nomeParlamentar", "numeroDeputadoID"
             ORDER BY "valorTotal" DESC
-            LIMIT 30
+            LIMIT 30;
         `
 
         return {
             ranking: ranking_deputados
         }
     })
-}
+
+    app.get("/pesquisa", async (req, res) => {
+        const params = req.query as { termo: string }
+
+        if(!params.termo) {
+            return res.status(400).send({
+                error: "Envie um termo para fazer a pesquisa."
+            })
+        }
+
+        if(params.termo.length > SEARCH_TERM_MAX_LENGTH) {
+            return res.status(400).send({
+                error: `O termo pode ter no máximo ${SEARCH_TERM_MAX_LENGTH} caracteres.`
+            })
+        }
+
+        const nomes = await database`
+            SELECT MAX("cnpjCPF") as "cnpjCPF", ARRAY_AGG(nome) as nomes FROM "NomesFornecedores" WHERE nome_vetor @@ plainto_tsquery('portuguese', ${params.termo}) GROUP BY "cnpjCPF" LIMIT ${SEARCH_LIMIT}
+        `
+
+        return {
+            data: nomes
+        }
+    })
+} // IMPLEMENTAR: correções de SEO, investigar porque a db travou e é isso
 
 export const route_config = {
     prefix: "/fornecedores"

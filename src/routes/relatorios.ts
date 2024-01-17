@@ -86,12 +86,6 @@ function getUrlData(req: FastifyRequest, res: FastifyReply, DEFAULT_RETURN_AMOUN
     query.ano = Array.isArray(query.ano) ? Math.round(query.ano[0]): Math.round(query.ano)
     query.mes = Array.isArray(query.mes) ? Math.round(query.mes[0]) : Math.round(query.mes)
 
-    if(isNaN(query.ano) || isNaN(query.mes)) {
-        res.status(400).send({
-            error: "As queries são numéricas."
-        })
-    }
-
     if(query.ano < 2009 || query.ano > year) {
         return res.status(400).send({
             error: `O ano é entre 2009 e ${year}`

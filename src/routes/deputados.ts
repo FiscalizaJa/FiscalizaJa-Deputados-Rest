@@ -1,59 +1,23 @@
 import { FastifyInstance } from "fastify";
 import UseDatabase from "../structures/Database";
-import { prepareDatabase } from "../structures/Database";
 import schemas from "../schemas/routes";
 
 const database = UseDatabase()
 
 function selectDefaultMonths() {
-    const start = new Date().getMonth() + 1
+    const date = new Date()
+    const start = 12
 
     let current = start
 
     const months = []
 
-    while (current >= start - 6) {
+    while (current >= start) {
         months.push(current)
         current -= 1
     }
 
     return months
-}
-
-function filterDeputiesQueries(query): any {
-    const keys = Object.keys(query)
-
-    for(const key of keys) {
-        let value = query[key]
-
-        if(!value) {
-            continue;
-        }
-
-        if(!Array.isArray(value)) {
-            if(isNaN(value)) {
-                return {
-                    invalid: true,
-                    query: key
-                }
-            }
-
-            value = [value]
-            query[key] = value
-        } else {
-            if(value.length > 15) {
-                return {
-                    invalid: true,
-                    query: key
-                }
-            } else {
-                value = value.filter(v => !isNaN(v))
-                query[key] = value
-            }
-        }
-    }
-
-    return { query: query }
 }
 
 const DEPUTIES_PER_PAGE = 513;
@@ -118,22 +82,12 @@ export default async function load(app: FastifyInstance) {
                 })
             }
 
-            let query = filterDeputiesQueries(req.query)
-
-            if(query.invalid) {
-                return res.status(400).send({
-                    error: `Query inválida: \"${query.query}\"`
-                })
-            } else {
-                query = query.query
-            }
-
-            if(query.pagina) {
-                query.pagina = query.pagina[0]
-            }
-
-            if(query.itens) {
-                query.itens = query.itens[0]
+            let query = req.query as {
+                pagina: number,
+                ano: number[]
+                mes: number[]
+                itens: number
+                fornecedor: string[]
             }
 
             if(!query.ano) {
@@ -157,15 +111,59 @@ export default async function load(app: FastifyInstance) {
             if(!query.pagina || query.pagina == 0 || isNaN(query.pagina)) {
                 query.pagina = 1
             }
-
+            
             const expenses_number = Math.min(query.itens || EXPENSES_PER_PAGE, EXPENSES_PER_PAGE)
 
             const OFFSET = (query.pagina || 1) * expenses_number
-    
-            const data = await database`SELECT ${database(expenses_columns)} FROM "Despesas" WHERE "numeroDeputadoID" = ${params.id} ${query.ano ? database`AND ano IN ${database(query.ano as any)}` : database``} ${query.mes ? database`AND mes IN ${database(query.mes as any)}` : database``} ${query.fornecedor ? database`AND "cnpjCPF" IN ${database(query.fornecedor)}` : database``} LIMIT ${expenses_number} ${query.pagina > 1 ? database`OFFSET ${OFFSET}` : database``}`
+
+            const nomes = query.fornecedor?.filter(f => isNaN(f as any)) || null
+            const cnpjs = query.fornecedor?.filter(f => !isNaN(f as any)) || null
+
+            const data = await database`
+                SELECT ${database(expenses_columns)} FROM "Despesas"
+                WHERE "numeroDeputadoID" = ${params.id}
+                ${query.ano ? database`AND ano IN ${database(query.ano as any)}` : database``}
+                ${query.mes ? database`AND mes IN ${database(query.mes as any)}` : database``}
+                ${query.fornecedor ?
+                    database`
+                        AND
+                        (${query.fornecedor ? database`"cnpjCPF" IN ${database(cnpjs)}` : database``}
+                        ${query.fornecedor ? cnpjs ? database`OR fornecedor IN ${database(nomes)}` : database`fornecedor IN ${database(query.fornecedor)}` : database``})
+                    `
+                    : database``
+                }
+                LIMIT ${expenses_number}
+                ${query.pagina > 1 ? database`OFFSET ${OFFSET}` : database``}
+            `
+
+            const gasto = await database`
+                SELECT SUM("valorLiquido") as "valorTotal" FROM "Despesas"
+                WHERE "numeroDeputadoID" = ${params.id}
+                ${query.ano ? database`AND ano IN ${database(query.ano as any)}` : database``}
+                ${query.mes ? database`AND mes IN ${database(query.mes as any)}` : database``}
+                ${query.fornecedor ?
+                    database`
+                        AND
+                        (${query.fornecedor ? database`"cnpjCPF" IN ${database(cnpjs)}` : database``}
+                        ${query.fornecedor ? cnpjs ? database`OR fornecedor IN ${database(nomes)}` : database`fornecedor IN ${database(query.fornecedor)}` : database``})
+                    `
+                    : database``
+                }
+            `
+
+            const fornecedores = await database`
+                SELECT fornecedor, COUNT(*) AS contratacoes, SUM("valorLiquido") AS "valorGasto", "cnpjCPF" as cnpj
+                FROM "Despesas"
+                WHERE "numeroDeputadoID" = ${params.id}
+                AND mes IN ${database(query.mes)}
+                AND ano IN ${database(query.ano)}
+                GROUP BY fornecedor, cnpj
+            `
 
             return {
                 total: data.length,
+                totalGasto: gasto[0].valorTotal,
+                fornecedores: fornecedores,
                 data: data
             }
         })
