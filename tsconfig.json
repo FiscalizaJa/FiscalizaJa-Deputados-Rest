@@ -4,6 +4,5 @@
         "allowJs": true,
         "esModuleInterop": true,
         "outDir": "./dist"
-    },
-    "include": ["data/**/*", "images/**/*"]
+    }
 }
