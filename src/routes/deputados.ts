@@ -1,8 +1,14 @@
 import { FastifyInstance } from "fastify";
 import UseDatabase from "../structures/Database";
+import ExpensesHandler from "../structures/ExpensesHandler";
+import DeputiesHandler from "../structures/DeputiesHandler";
+import DeputyBanners from "../structures/DeputyBanners";
 import schemas from "../schemas/routes";
 
 const database = UseDatabase()
+
+const expenses = new ExpensesHandler(database)
+const deputies = new DeputiesHandler(database)
 
 function selectDefaultMonths() {
     const date = new Date()
@@ -21,10 +27,6 @@ function selectDefaultMonths() {
 }
 
 const DEPUTIES_PER_PAGE = 513;
-const EXPENSES_PER_PAGE = 150;
-
-const deputies_columns = ["idCamara", "uri", "nome", "urlFoto", "idLegislaturaInicial", "idLegislaturaFinal", "nomeCivil", "siglaSexo", "siglaPartido", "urlRedeSocial", "urlWebsite", "dataNascimento", "dataFalecimento", "ufNascimento", "municipioNascimento"]
-const expenses_columns = ['id', 'nomeParlamentar', 'cpf', 'numeroCarteiraParlamentar', 'legislatura', 'siglaUF', 'siglaPartido', 'codigoLegislatura', 'numeroSubCota', 'descricao', 'numeroEspecificacaoSubCota', 'descricaoEspecificacao', 'fornecedor', 'cnpjCPF', 'numero', 'tipoDocumento', 'dataEmissao', 'valorDocumento', 'valorGlosa', 'valorLiquido', 'mes', 'ano', 'parcela', 'passageiro', 'trecho', 'lote', 'ressarcimento', 'datPagamentoRestituicao', 'restituicao', 'numeroDeputadoID', 'idDocumento', 'urlDocumento']
 
 export default async function load(app: FastifyInstance) {
     return new Promise(async (resolve, reject) => {
@@ -32,10 +34,10 @@ export default async function load(app: FastifyInstance) {
         app.get("/", {
             schema: schemas.DEPUTADOS
         }, async (req, res) => {
-            const query: {
-                itens?: number,
-                pagina?: number
-            } = req.query as any
+            const query = req.query as {
+                itens: number,
+                pagina: number
+            }
 
             query.itens = Math.min(DEPUTIES_PER_PAGE, query.itens || DEPUTIES_PER_PAGE)
 
@@ -43,9 +45,7 @@ export default async function load(app: FastifyInstance) {
                 query.pagina = 1
             }
 
-            const OFFSET = query.pagina * query.itens
-
-            const data = await database`SELECT ${database(deputies_columns)} from "Deputados" ${database`WHERE operational = 1`} ${database`LIMIT ${query.itens}`} ${query.pagina > 1 ? database`OFFSET ${OFFSET}` : database``}`
+            const data = await deputies.getDeputies(query)
 
             return {
                 total: data.length,
@@ -65,9 +65,12 @@ export default async function load(app: FastifyInstance) {
                 })
             }
 
-            const data = await database`SELECT ${database(deputies_columns)} FROM "Deputados" ${database`WHERE "idCamara" = ${params.id}`} LIMIT 1`
+            DeputyBanners.LookupDeputyImage(params.id) // generate on-demand
+
+            const data = await deputies.getDeputy(params.id)
+
             return {
-                data: data[0] || null
+                data: data
             }
         })
 
@@ -111,58 +114,17 @@ export default async function load(app: FastifyInstance) {
             if(!query.pagina || query.pagina == 0 || isNaN(query.pagina)) {
                 query.pagina = 1
             }
-            
-            const expenses_number = Math.min(query.itens || EXPENSES_PER_PAGE, EXPENSES_PER_PAGE)
-
-            const OFFSET = (query.pagina || 1) * expenses_number
 
             const nomes = query.fornecedor?.filter(f => isNaN(f as any)) || null
             const cnpjs = query.fornecedor?.filter(f => !isNaN(f as any)) || null
 
-            const data = await database`
-                SELECT ${database(expenses_columns)} FROM "Despesas"
-                WHERE "numeroDeputadoID" = ${params.id}
-                ${query.ano ? database`AND ano IN ${database(query.ano as any)}` : database``}
-                ${query.mes ? database`AND mes IN ${database(query.mes as any)}` : database``}
-                ${query.fornecedor ?
-                    database`
-                        AND
-                        (${query.fornecedor ? database`"cnpjCPF" IN ${database(cnpjs)}` : database``}
-                        ${query.fornecedor ? cnpjs ? database`OR fornecedor IN ${database(nomes)}` : database`fornecedor IN ${database(query.fornecedor)}` : database``})
-                    `
-                    : database``
-                }
-                LIMIT ${expenses_number}
-                ${query.pagina > 1 ? database`OFFSET ${OFFSET}` : database``}
-            `
-
-            const gasto = await database`
-                SELECT SUM("valorLiquido") as "valorTotal" FROM "Despesas"
-                WHERE "numeroDeputadoID" = ${params.id}
-                ${query.ano ? database`AND ano IN ${database(query.ano as any)}` : database``}
-                ${query.mes ? database`AND mes IN ${database(query.mes as any)}` : database``}
-                ${query.fornecedor ?
-                    database`
-                        AND
-                        (${query.fornecedor ? database`"cnpjCPF" IN ${database(cnpjs)}` : database``}
-                        ${query.fornecedor ? cnpjs ? database`OR fornecedor IN ${database(nomes)}` : database`fornecedor IN ${database(query.fornecedor)}` : database``})
-                    `
-                    : database``
-                }
-            `
-
-            const fornecedores = await database`
-                SELECT fornecedor, COUNT(*) AS contratacoes, SUM("valorLiquido") AS "valorGasto", "cnpjCPF" as cnpj
-                FROM "Despesas"
-                WHERE "numeroDeputadoID" = ${params.id}
-                AND mes IN ${database(query.mes)}
-                AND ano IN ${database(query.ano)}
-                GROUP BY fornecedor, cnpj
-            `
+            const data = await expenses.getAllExpenses(params.id, query, nomes, cnpjs)
+            const gasto = await expenses.getTotalGasto(params.id, query, nomes, cnpjs)
+            const fornecedores = await expenses.getFornecedores(params.id, query)
 
             return {
                 total: data.length,
-                totalGasto: gasto[0].valorTotal,
+                totalGasto: gasto,
                 fornecedores: fornecedores,
                 data: data
             }

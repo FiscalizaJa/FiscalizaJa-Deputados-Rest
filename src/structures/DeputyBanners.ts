@@ -1,7 +1,8 @@
 /**
  * Gerador de imagens com opencv4.
  */
-import fs from "fs";
+import fs from "fs/promises";
+import fsSync from "fs";
 import Canvas from "canvas";
 import CanvasWriteTextWithAutoBreak from "../utils/CanvasWriteTextWithAutoBreak"
 import resizeImage from "../utils/resizeImage";
@@ -10,13 +11,12 @@ import GetAgeFromDate from "../utils/GetAgeFromDate"
 
 import config from "../../config.json";
 
-import dotenv from "dotenv";
 import UseDatabase from "./Database";
 
 import type { Deputy } from "../interfaces/Deputy";
-import { Expense } from "../interfaces/Expense";
 
-dotenv.config()
+const logo = fsSync.readFileSync(`./images/vault.png`)
+
 const database = UseDatabase()
 
 const PHOTO_WIDTH = config.social_banner.photo.width
@@ -42,21 +42,44 @@ const LOGO_HEIGHT = config.social_banner.logo.height
 const LOGO_X = config.social_banner.logo.x
 const LOGO_Y = config.social_banner.logo.y
 
+/**
+ * Lookup deputy images and returns them.
+ * Auto generate and save if they don't have saved (on demand generation).
+ * @param idCamara ID of deputy.
+ */
 async function LookupDeputyImage(idCamara: number) {
+    const lookup = fsSync.existsSync(`./api_images/${idCamara}.png`)
+    let imageBuffer: Buffer;
+
+    if(!lookup) {
+        imageBuffer = await generateAndSaveImage(idCamara)
+    } else {
+        imageBuffer = await fs.readFile(`./api_images/${idCamara}.png`)
+    }
+
+    return imageBuffer
+}
+
+async function RefreshDeputyImage(idCamara: number) {
 
 }
 
 // i try to make this not complex, but if canvas is used, is impossible.
 // Eu tentei fazer isso não ser complexo, mas se canvas é usado, é impossível.
 async function generateAndSaveImage(idCamara: number) {
+    const date = new Date()
+
     const deputy_data = await getDeputy(idCamara)
-    const total = await getTotalGasto(idCamara, 2023)
+    if(!deputy_data) {
+        return null
+    }
+
+    const total = await getTotalGasto(idCamara, date.getFullYear())
 
     const photo = await DownloadFileWithoutStream(`https://www.camara.leg.br/internet/deputado/bandep/pagina_do_deputado/${idCamara}.jpg`)
     const processed_photo = await resizeImage(photo, PHOTO_WIDTH, PHOTO_HEIGHT, "cover")
     const photo_canvas = await Canvas.loadImage(processed_photo)
     
-    const logo = await DownloadFileWithoutStream(`https://deputados.fiscalizaja.com/vault.png`)
     const processed_logo = await resizeImage(logo, LOGO_WIDTH, LOGO_HEIGHT, "inside")
     const logo_canvas = await Canvas.loadImage(processed_logo)
 
@@ -82,18 +105,18 @@ async function generateAndSaveImage(idCamara: number) {
     const summary = CanvasWriteTextWithAutoBreak(ctx, `${deputy_data.siglaSexo === "M" ? "Nascido" : "Nascida"} na cidade de ${deputy_data.municipioNascimento}, ${deputy_data.nome.split(" ")[0]} atua pelo ${deputy_data.siglaPartido} e tem ${GetAgeFromDate(deputy_data.dataNascimento)} anos de idade.`, photo_canvas.width + TEXTAREA_LEFT_PADDING, SUMMARY_y, SUMMARY_MAX_WIDTH, SUMMARY_LINE_HEIGHT)
     
     ctx.font = 'normal 17px sans-serif'
-    CanvasWriteTextWithAutoBreak(ctx, `Gastou R$ ${Number(total).toLocaleString("pt-br")} em 2023.`, photo_canvas.width + TEXTAREA_LEFT_PADDING, summary.y + TOTALS_INITIAL_MARGIN_TOP, TOTALS_MAX_WIDTH, TOTALS_LINE_HEIGHT)
+    CanvasWriteTextWithAutoBreak(ctx, `Gastou R$ ${Number(total).toLocaleString("pt-br")} em ${date.getFullYear()}.`, photo_canvas.width + TEXTAREA_LEFT_PADDING, summary.y + TOTALS_INITIAL_MARGIN_TOP, TOTALS_MAX_WIDTH, TOTALS_LINE_HEIGHT)
 
 
     const image = canvas.toBuffer("image/png")
-    fs.writeFileSync("./api_images/test.jpg", image)
-    database.end()
+    await fs.writeFile(`./api_images/${idCamara}.png`, image)
+    return image
 }
 
 async function getDeputy(id: number): Promise<Deputy | null> {
     const data: Deputy[] = await database`
         SELECT * FROM "Deputados"
-        WHERE "idCamara" = ${id}
+        WHERE "idCamara" = ${id} AND operational = ${1}
     `
 
     return data[0] || null
@@ -106,7 +129,9 @@ async function getTotalGasto(id: number, year: number = new Date().getFullYear()
         WHERE "numeroDeputadoID" = ${id} AND ano = ${year}
     `
 
-    return data[0]?.total || null
+    return data[0]?.total || 0
 }
 
-generateAndSaveImage(204528)
+export default {
+    LookupDeputyImage
+}

@@ -6,7 +6,8 @@
         }
     },
     "cronjobs": {
-        "update_expenses": "0 6 * * *"
+        "update_expenses": "0 6 * * *",
+        "clear_banners": "0 6 * * *"
     },
     "social_banner": {
         "photo": {
@@ -15,7 +16,7 @@
         },
         "text_area": {
             "width": 250,
-            "left_padding": 25,
+            "left_padding": 17,
             "title": {
                 "height": 50
             },

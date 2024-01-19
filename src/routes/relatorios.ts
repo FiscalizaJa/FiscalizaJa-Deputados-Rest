@@ -1,8 +1,11 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import ExpensesHandler from "../structures/ExpensesHandler";
 import UseDatabase from "../structures/Database";
 import schemas from "../schemas/routes";
 
 const database = UseDatabase()
+
+const expenses = new ExpensesHandler(database)
 
 const TRAVELS_NUMBER = 40
 
@@ -202,31 +205,8 @@ export default async function load(app: FastifyInstance) {
             })
         }
 
-        const OFFSET = query.itens * query.pagina
-
-        const data = await database`
-            SELECT id, 
-            "nomeParlamentar" AS parlamentar,
-            fornecedor,
-            "cnpjCPF" as cnpj,
-            "valorLiquido" AS valor,
-            "dataEmissao" AS data,
-            mes,
-            ano,
-            "idDocumento",
-            "urlDocumento" FROM "Despesas"
-            WHERE "numeroDeputadoID" = ${params.id}
-            AND "numeroSubCota" = ${filter[0]}
-            AND "numeroEspecificacaoSubCota" = ${filter[1]}
-            AND mes = ${query.mes}
-            AND ano = ${query.ano}
-            ${query.fornecedor && isNaN(query.fornecedor) ? database`AND fornecedor = ${query.fornecedor}` : database``}
-            ${query.fornecedor && !isNaN(query.fornecedor) ? database`AND "cnpjCPF" = ${query.fornecedor}` : database``}
-            LIMIT ${query.itens}
-            ${query.pagina > 1 ? database`OFFSET ${OFFSET}` : database``}
-        `
-
-        const counts = await getCounts(params, query, filter)
+        const data = await expenses.getRelatorio(params.id, query, filter)
+        const counts = await expenses.getGastosRelatorio(params, query, filter)
 
         return {
             total: data.length,
@@ -247,31 +227,9 @@ export default async function load(app: FastifyInstance) {
         }
 
         const OFFSET = query.itens * query.pagina
-
-        const data = await database`
-            SELECT
-            id,
-            "nomeParlamentar" AS parlamentar,
-            fornecedor,
-            "cnpjCPF" as cnpj,
-            "valorLiquido" AS valor,
-            "dataEmissao" AS data,
-            mes,
-            ano,
-            "idDocumento",
-            "urlDocumento" FROM "Despesas"
-            WHERE "numeroDeputadoID" = ${params.id}
-            AND "numeroSubCota" = ${122}
-            AND "numeroEspecificacaoSubCota" = ${0}
-            AND mes = ${query.mes}
-            AND ano = ${query.ano}
-            ${query.fornecedor && isNaN(query.fornecedor) ? database`AND fornecedor = ${query.fornecedor}` : database``}
-            ${query.fornecedor && !isNaN(query.fornecedor) ? database`AND "cnpjCPF" = ${query.fornecedor}` : database``}
-            LIMIT ${query.itens}
-            ${query.pagina > 1 ? database`OFFSET ${OFFSET}` : database``}
-        `
-
-        const counts = await getCounts(params, query, [122, 0])
+        //122,0
+        const data = await expenses.getRelatorio(params.id, query, [122, 0])
+        const counts = await expenses.getGastosRelatorio(params.id, query, [122, 0])
 
         return {
             total: data.length,
@@ -299,32 +257,8 @@ export default async function load(app: FastifyInstance) {
             })
         }
 
-        const OFFSET = query.itens * query.pagina
-
-        const data = await database`
-            SELECT id,
-            "nomeParlamentar" AS parlamentar,
-            fornecedor,
-            "cnpjCPF" as cnpj,
-            "valorLiquido" AS valor,
-            "dataEmissao" AS data,
-            mes,
-            ano,
-            "idDocumento",
-            "urlDocumento"
-            FROM "Despesas"
-            WHERE "numeroDeputadoID" = ${params.id}
-            AND "numeroSubCota" = ${filter[0]}
-            AND "numeroEspecificacaoSubCota" = ${filter[1]}
-            AND mes = ${query.mes}
-            AND ano = ${query.ano}
-            ${query.fornecedor && isNaN(query.fornecedor) ? database`AND fornecedor = ${query.fornecedor}` : database``}
-            ${query.fornecedor && !isNaN(query.fornecedor) ? database`AND "cnpjCPF" = ${query.fornecedor}` : database``}
-            LIMIT ${query.itens}
-            ${query.pagina > 1 ? database`OFFSET ${OFFSET}` : database``}
-        `
-
-        const counts = await getCounts(params, query, filter)
+        const data = await expenses.getRelatorio(params.id, query, filter)
+        const counts = await expenses.getGastosRelatorio(params.id, query, filter)
 
         return {
             total: data.length,
@@ -344,32 +278,8 @@ export default async function load(app: FastifyInstance) {
             return;
         }
 
-        const OFFSET = query.itens * query.pagina
-
-        const data = await database`
-            SELECT id, 
-            "nomeParlamentar" AS parlamentar,
-            fornecedor,
-            "cnpjCPF" as cnpj,
-            "valorLiquido" AS valor,
-            "dataEmissao" AS data,
-            mes,
-            ano,
-            "idDocumento",
-            "urlDocumento"
-            FROM "Despesas"
-            WHERE "numeroDeputadoID" = ${params.id}
-            AND "numeroSubCota" = ${13}
-            AND "numeroEspecificacaoSubCota" = ${0}
-            AND mes = ${query.mes}
-            AND ano = ${query.ano}
-            ${query.fornecedor && isNaN(query.fornecedor) ? database`AND fornecedor = ${query.fornecedor}` : database``}
-            ${query.fornecedor && !isNaN(query.fornecedor) ? database`AND "cnpjCPF" = ${query.fornecedor}` : database``}
-            LIMIT ${query.itens}
-            ${query.pagina > 1 ? database`OFFSET ${OFFSET}` : database``}
-        `
-
-        const counts = await getCounts(params, query, ALIMENTATIONS_FILTER)
+        const data = await expenses.getRelatorio(params.id, query, [13, 0])
+        const counts = await expenses.getGastosRelatorio(params.id, query, ALIMENTATIONS_FILTER)
 
         return {
             total: data.length,

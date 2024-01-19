@@ -7,7 +7,8 @@ import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
 import { prepareDatabase } from "./structures/Database";
 
-import job from "./cronjobs/update_expenses";
+import update_expenses_job from "./cronjobs/update_expenses";
+import clear_banners_job from "./cronjobs/clear_banners";
 
 dotenv.config()
 
@@ -79,6 +80,7 @@ Router.startRouter(app).then(async () => {
         port: port
     }).then(async () => {
         console.log(Colors.green(`Ready to serve data on port ${port}`))
-        job.start()
+        update_expenses_job.start()
+        clear_banners_job.start()
     })
 })
