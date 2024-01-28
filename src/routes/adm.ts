@@ -28,11 +28,7 @@ export default async function load(app: FastifyInstance) {
         }
     })
 
-    app.get("/trigger-update", {
-        schema: {
-            hide: true
-        }
-    }, async (req, res) => {
+    app.get("/trigger-update", async (req, res) => {
         startSaveProcess(true)
 
         return {

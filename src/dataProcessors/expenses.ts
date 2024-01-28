@@ -87,7 +87,8 @@ async function startSaveProcess(updateMode?: boolean) {
 
     await checkJson(updateMode)
 
-    const years = updateMode ? [new Date().getFullYear()] : createYears(2008, new Date().getFullYear())
+    const currentYear = new Date().getFullYear()
+    const years = updateMode ? [currentYear - 1, currentYear] : createYears(2008, new Date().getFullYear())
 
     let expenses = []
     let transactions_promises = []

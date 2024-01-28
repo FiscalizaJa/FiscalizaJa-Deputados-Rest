@@ -130,6 +130,45 @@ export default async function load(app: FastifyInstance) {
             }
         })
 
+        app.get("/:id/despesas/resumo", {
+            schema: schemas.DEPUTADO_DESPESAS_RESUMO
+        }, async (req, res) => {
+            const params: { id?: number } = req.params
+
+            if(isNaN(params.id)) {
+                return res.status(400).send({
+                    error: "Invalid ID"
+                })
+            }
+
+            let query = req.query as {
+                ano: number
+                mes: number
+                fornecedor: string[]
+            }
+
+            const date = new Date()
+            const currentYear = date.getFullYear()
+
+            if(!query.ano || query.ano > currentYear) {
+                query.ano = currentYear
+            }
+
+            if(!query.mes || query.mes > 12) {
+                query.mes = date.getMonth() + 1
+            }
+
+            const resumo = await expenses.getGastosCategorias(params.id, query)
+            const gastoPorMes = await expenses.getGastosPorMes(params.id, query.ano, query.fornecedor || null)
+
+            return {
+                data: {
+                    categorias: resumo,
+                    gastoPorMes: gastoPorMes
+                }
+            }
+        })
+
         resolve(true)
     })
 

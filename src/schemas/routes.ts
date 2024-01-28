@@ -104,6 +104,50 @@ export default {
         }
     },
 
+    DEPUTADO_DESPESAS_RESUMO: {
+        description: "Retorna um resumo dos gastos de um determinado deputado. Retorna o total por categoria e mensal.",
+        summary: "Resumo das despesas do deputado.",
+
+        tags: ["Deputados"],
+
+        params: {
+            type: "object",
+            properties: {
+                id: {
+                    type: "number",
+                    description: "ID do deputado a ser consultado."
+                }
+            }
+        },
+
+        querystring: {
+            type: "object",
+            properties: {
+                ano: {
+                    type: "array",
+                    description: "Um ou mais anos em que ocorreram as despesas.",
+                    items: {
+                        type: "number"
+                    }
+                },
+                mes: {
+                    type: "array",
+                    description: "Número de um ou mais meses em que ocorreram as despesas.",
+                    items: {
+                        type: "number"
+                    }
+                },
+                fornecedor: {
+                    type: "array",
+                    description: "Um ou mais fornecedores das despesas.",
+                    items: {
+                        type: "string"
+                    }
+                }
+            }
+        }
+    },
+
     FORNECEDORES: {
         description: `Consulta o valor total gasto pela câmara com um fornecedor em todos os anos 2009 a ${new Date().getFullYear()}`,
         summary: "Valor gasto pela câmara com um fornecedor em todos os anos.",

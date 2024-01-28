@@ -1,7 +1,9 @@
 import UseDatabase from "./Database";
 
 import type { Sql } from "postgres";
+import DeputiesHandler from "./DeputiesHandler";
 import type { Deputy } from "../interfaces/Deputy";
+import { Expense } from "../interfaces/Expense";
 
 class ExpensesHandler {
     public database: Sql
@@ -31,7 +33,7 @@ class ExpensesHandler {
         nomes = nomes ? nomes : query.fornecedor?.filter(f => isNaN(f as any)) || null
         cnpjs = cnpjs ? cnpjs : query.fornecedor?.filter(f => !isNaN(f as any)) || null
 
-        const data = await this.database`
+        const data: Expense[] = await this.database`
             SELECT ${this.database(ExpensesHandler.expenses_columns)} FROM "Despesas"
             WHERE "numeroDeputadoID" = ${idCamara}
             ${query.ano ? this.database`AND ano IN ${this.database(query.ano as any)}` : this.database``}
@@ -49,6 +51,28 @@ class ExpensesHandler {
         `
 
         return data
+    }
+
+    public async getSpecificExpense(id: number) {
+        type ExtendedExpense = Expense & { author: Deputy }
+
+        const expense: ExtendedExpense[] = await this.database`
+            SELECT ${this.database(ExpensesHandler.expenses_columns)} FROM "Despesas"
+            WHERE id = ${id}
+        `
+
+        if(expense[0]) {
+            const deputy: Deputy[] = await this.database`
+                SELECT ${this.database(DeputiesHandler.deputies_columns)} FROM "Deputados"
+                WHERE "idCamara" = ${expense[0].numeroDeputadoID}
+            `
+        
+            if(deputy) {
+                expense[0].author = deputy[0]
+            }
+        }
+
+        return expense[0] || null
     }
 
     public async getTotalGasto(
@@ -97,6 +121,38 @@ class ExpensesHandler {
         return data
     }
 
+    public async getGastosCategorias(idCamara: number, query: { mes: number, ano: number}, nomes?: string[], cnpjs?: string[]) {
+        const data = await this.database`
+            SELECT SUM("valorLiquido") as total, descricao, "numeroSubCota", "numeroEspecificacaoSubCota" 
+            FROM "Despesas"
+            WHERE "numeroDeputadoID" = ${idCamara} AND ano = ${query.ano} AND mes = ${query.mes}
+            GROUP BY descricao, "numeroSubCota", "numeroEspecificacaoSubCota"
+        `
+
+        return data || null
+    }
+
+    public async getGastosPorMes(idCamara: number, ano: number, fornecedor?: string[]) {
+        const nomes = fornecedor?.filter(f => isNaN(f as any)) || null
+        const cnpjs = fornecedor?.filter(f => !isNaN(f as any)) || null
+
+        const data = await this.database`
+            SELECT SUM("valorLiquido") as total, mes FROM "Despesas"
+            WHERE "numeroDeputadoID" = ${idCamara} AND ano = ${ano}
+            ${fornecedor ?
+                this.database`
+                    AND
+                    (${fornecedor ? this.database`"cnpjCPF" IN ${this.database(cnpjs)}` : this.database``}
+                    ${fornecedor ? cnpjs ? this.database`OR fornecedor IN ${this.database(nomes)}` : this.database`fornecedor IN ${this.database(fornecedor)}` : this.database``})
+                `
+                : this.database``
+            }
+            GROUP BY mes
+        `
+
+        return data || null
+    }
+
     public async getGastosRelatorio(idCamara: number, query: { mes: number, ano: number }, filter: number[]) {
         const data = await this.database`
             SELECT fornecedor, COUNT(*) AS contratacoes, SUM("valorLiquido") AS "valorGasto", "cnpjCPF" as cnpj
@@ -111,6 +167,7 @@ class ExpensesHandler {
 
         return data
     }
+
 
     public async getViagens(
         idCamara: number,
