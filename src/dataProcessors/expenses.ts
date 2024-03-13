@@ -27,7 +27,8 @@ function createYears(start: number, end: number) {
 }
 
 async function checkJson(updateMode: boolean = false) {
-    const years = updateMode ? [new Date().getFullYear()] : createYears(2008, new Date().getFullYear())
+    const currentYear = new Date().getFullYear()
+    const years = updateMode ? [currentYear - 1, currentYear] : createYears(2008, new Date().getFullYear())
 
     let promises = []
 
