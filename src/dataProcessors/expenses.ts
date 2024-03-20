@@ -7,11 +7,9 @@ import { prepareDatabase } from "../structures/Database";
 import config from "../../config.json";
 
 import { Expense } from "../interfaces/Expense";
-
 import paginate from "../paginate";
 
 const downloader = new Downloader()
-
 const database = UseDatabase()
 
 function createYears(start: number, end: number) {
@@ -172,6 +170,22 @@ async function startSaveProcess(updateMode?: boolean) {
         DELETE FROM "Despesas"
         WHERE id IN (SELECT id FROM cte WHERE rn > 1)
     `
+
+    console.log(Colors.yellow("Updating totals..."))
+    await database`
+        WITH despesas AS (
+            SELECT ano, 
+            mes, 
+            fornecedor,
+            "nomeParlamentar",
+            "numeroDeputadoID",
+            SUM("valorLiquido") AS total
+            FROM "Despesas"
+            GROUP BY ano, mes, fornecedor, "nomeParlamentar", "numeroDeputadoID"
+        )
+        INSERT INTO "GastosTotais" (ano, mes, fornecedor, "nomeParlamentar", "numeroDeputadoID", total)
+        SELECT ano, mes, fornecedor, "nomeParlamentar", "numeroDeputadoID", total FROM despesas ON CONFLICT DO NOTHING;
+    ` // atualiza os gastos totais, que serão usados na consulta de fornecedores
     console.log(Colors.green("Finished."))
 }
 

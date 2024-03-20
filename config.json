@@ -2,7 +2,11 @@
     "processors": {
         "expenses": {
             "concurrent_transactions": 35,
-            "transaction_size": 6000
+            "transaction_size": 6000,
+            "totals": {
+                "concurrent_transactions": 26,
+                "concurent_insertions": 8
+            }
         }
     },
     "cronjobs": {

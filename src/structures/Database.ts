@@ -70,6 +70,19 @@ async function prepareDatabase(useIndex: boolean = false) {
     `
 
     await sql`
+        CREATE TABLE IF NOT EXISTS "GastosTotais" (
+            id SERIAL PRIMARY KEY,
+            ano INTEGER,
+            mes INTEGER,
+            fornecedor TEXT,
+            "nomeParlamentar" TEXT,
+            "numeroDeputadoID" INTEGER,
+            total DECIMAL(10, 2),
+            CONSTRAINT idx_gastosfiltros UNIQUE (ano, mes, fornecedor, "nomeParlamentar", "numeroDeputadoID", total)
+        );
+    `
+
+    await sql`
         CREATE TABLE IF NOT EXISTS "Aeroportos" (
             id SERIAL PRIMARY KEY,
             icao VARCHAR(4),
